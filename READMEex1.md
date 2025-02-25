@@ -141,3 +141,119 @@ show collections
 db.cves.find().pretty()
 
 Check Shodan Responses in MongoDB (db3)
+----------------------------------------------------------------------------------------------
+OWASP ZAP (Zed Attack Proxy) provides script-based authentication, allowing users to define custom authentication mechanisms for web applications. Below is a step-by-step guide to setting up script-based authentication in OWASP ZAP.
+
+Step 1: Start OWASP ZAP
+Open OWASP ZAP.
+Ensure the target application is running and accessible.
+Step 2: Set Up a Context
+In OWASP ZAP, go to "Contexts" → "New Context".
+Name the context (e.g., MyAppContext).
+Add the target URL to the context.
+Step 3: Identify Authentication Parameters
+Open the login page in a browser (or use ZAP's "Manual Request Editor").
+Inspect the login request (via Developer Tools or ZAP's proxy).
+Identify:
+Login URL (e.g., https://example.com/login)
+Request type (POST or GET)
+Username and password fields
+Any additional tokens (CSRF, session ID, etc.)
+Step 4: Enable Script-Based Authentication
+Go to "Contexts" → Select your context → "Authentication" tab.
+Choose "Script-based Authentication" from the dropdown.
+Step 5: Create an Authentication Script
+Open ZAP's Scripts tab (View → Show Tab → Scripts).
+Right-click "Authentication" → New Script.
+Select:
+Type: Authentication
+Engine: JavaScript
+Template: "HTTP Authentication Script" (or blank)
+Name the script (e.g., MyAuthScript).
+Step 6: Write the Authentication Script
+Replace the script content with something like this:
+
+javascript
+Copy
+Edit
+function authenticate(helper, paramsValues, credentials) {
+    var loginUrl = paramsValues.get("loginUrl");
+    var username = credentials.getParam("username");
+    var password = credentials.getParam("password");
+
+    var requestBody = "username=" + encodeURIComponent(username) + "&password=" + encodeURIComponent(password);
+
+    var msg = helper.prepareMessage();
+    msg.getRequestHeader().setURI(new URI(loginUrl, false));
+    msg.setRequestBody(requestBody);
+    msg.getRequestHeader().setHeader("Content-Type", "application/x-www-form-urlencoded");
+
+    helper.sendAndReceive(msg);
+
+    return msg;
+}
+// OWASP ZAP Script-Based Authentication
+// This script sends a login request and extracts session cookies for authentication.
+
+function authenticate(helper, paramsValues, credentials) {
+    var loginUrl = paramsValues.get("loginUrl"); // Get login URL from script parameters
+    var username = credentials.getParam("username"); // Get username
+    var password = credentials.getParam("password"); // Get password
+
+    // Construct the login request body (modify based on your form fields)
+    var requestBody = "username=" + encodeURIComponent(username) + "&password=" + encodeURIComponent(password);
+
+    // Prepare the HTTP request
+    var msg = helper.prepareMessage();
+    msg.getRequestHeader().setURI(new org.parosproxy.paros.network.HttpSender(new java.net.URI(loginUrl, false)));
+    msg.getRequestHeader().setMethod("POST"); // Change to "GET" if login uses a GET request
+    msg.setRequestBody(requestBody);
+    msg.getRequestHeader().setHeader("Content-Type", "application/x-www-form-urlencoded");
+
+    // Send login request
+    helper.sendAndReceive(msg);
+
+    // Check for successful authentication (Modify based on your response)
+    var responseBody = msg.getResponseBody().toString();
+    if (responseBody.contains("Invalid username or password")) {
+        print("Authentication failed: Invalid credentials.");
+        return null;
+    }
+
+    // Extract session cookies
+    var cookies = msg.getResponseHeader().getHttpCookies();
+    for (var i = 0; i < cookies.size(); i++) {
+        print("Extracted Cookie: " + cookies.get(i).toString());
+    }
+
+    return msg;
+}
+
+Modify:
+
+loginUrl: Set the actual login endpoint.
+requestBody: Match the form data structure.
+Step 7: Configure Authentication Parameters
+Under "Contexts" → "Authentication", select the new script.
+Click "Script Parameters" and set:
+loginUrl: The login API or form URL.
+Step 8: Define User Credentials
+Under "Users", add a user.
+Enter username & password.
+Associate the user with the authentication script.
+Step 9: Configure Session Management
+Under "Contexts" → "Session Management", choose:
+Cookie-based session management (for web apps).
+HTTP Authentication (for basic auth).
+Step 10: Test Authentication
+Under "Users", right-click the user → "Authenticate".
+Check if authentication works:
+Go to "HTTP Sessions" tab.
+Verify if a session is created.
+Step 11: Enable Authorization Detection (Optional)
+Go to "Contexts" → "Authorization".
+Configure rules to detect unauthorized access.
+Step 12: Start Scanning
+Select "Spider" or "Active Scan".
+Choose the authenticated user.
+Start scanning.
