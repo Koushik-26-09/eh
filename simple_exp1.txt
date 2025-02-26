@@ -1,0 +1,55 @@
+#!/bin/bash
+
+# Shodan API key (replace with your actual API key)
+SHODAN_API=""
+
+# Function to fetch vulnerabilities from NVD
+fetch_nvd() {
+    echo "Fetching NVD data..."
+    curl -s 'https://nvd.nist.gov/vuln/search/results?form_type=Basic&results_type=overview&search_type=last3months&isCpeNameSearch=false' \
+        -H 'User-Agent: Mozilla/5.0' > nist.gov.txt
+
+    echo "[" > cve_list.json
+    grep -Eo "CVE-[0-9]+-[0-9]+" nist.gov.txt | sort -u | sed 's/.*/{ "cve_id": "&" },/' >> cve_list.json
+    sed -i '$ s/,$//' cve_list.json
+    echo "]" >> cve_list.json
+    echo "Extracted CVEs saved to cve_list.json."
+}
+
+# Function to fetch vulnerabilities from MITRE
+fetch_mitre() {
+    echo "Fetching MITRE data..."
+    curl -s 'https://cve.mitre.org/data/downloads/allitems.csv' -o allitems.csv
+
+    grep "^\"CVE-" allitems.csv | awk -F, '{print "{ \"cve_id\": " $1 ", \"description\": " $3 " }"}' > mitre_data.json
+    sed -i '1s/^/[/' mitre_data.json
+    echo "]" >> mitre_data.json
+    echo "MITRE data saved to mitre_data.json."
+}
+
+# Function to query Shodan with a CVE ID
+query_shodan() {
+    echo "Enter the CVE ID to query:"
+    read CVE_ID
+    RESPONSE=$(shodan search "$CVE_ID" --key $SHODAN_API --limit 5)
+    echo $RESPONSE | jq '.' > shodan_response.json
+    echo "Shodan response saved to shodan_response.json."
+}
+
+# Main menu
+while true; do
+    echo "Select an option:"
+    echo "1. Fetch NVD vulnerabilities"
+    echo "2. Fetch MITRE vulnerabilities"
+    echo "3. Query Shodan with CVE ID"
+    echo "4. Exit"
+    read OPTION
+
+    case $OPTION in
+        1) fetch_nvd ;;
+        2) fetch_mitre ;;
+        3) query_shodan ;;
+        4) echo "Exiting..."; break ;;
+        *) echo "Invalid option, try again." ;;
+    esac
+done

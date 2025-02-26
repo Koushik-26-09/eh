@@ -1,0 +1,39 @@
+#!/bin/bash
+
+SHODAN_API=""
+
+fetch_nvd() {
+    echo "Fetching NVD data..."
+    curl -s 'https://nvd.nist.gov/vuln/search/results?form_type=Basic&results_type=overview&search_type=last3months&isCpeNameSearch=false' \
+        -H 'User-Agent: Mozilla/5.0' | grep -Eo "CVE-[0-9]+-[0-9]+" | sort -u | jq -R . | jq -s . > cve_list.json
+    echo "NVD data saved to cve_list.json."
+}
+
+fetch_mitre() {
+    echo "Fetching MITRE data..."
+    curl -s 'https://cve.mitre.org/data/downloads/allitems.csv' | grep "^\"CVE-" | awk -F, '{print "{\"cve_id\": "$1"}"}' | jq -s . > mitre_data.json
+    echo "MITRE data saved to mitre_data.json."
+}
+
+query_shodan() {
+    echo "Enter CVE ID:"
+    read CVE_ID
+    shodan search "$CVE_ID" --key $SHODAN_API --limit 5 | jq . > shodan_response.json
+    echo "Shodan response saved to shodan_response.json."
+}
+
+while true; do
+    echo "1. Fetch NVD data"
+    echo "2. Fetch MITRE data"
+    echo "3. Query Shodan"
+    echo "4. Exit"
+    read OPTION
+
+    case $OPTION in
+        1) fetch_nvd ;;
+        2) fetch_mitre ;;
+        3) query_shodan ;;
+        4) break ;;
+        *) echo "Invalid option" ;;
+    esac
+done

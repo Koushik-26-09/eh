@@ -1,0 +1,33 @@
+sudo sh ZAP_2_16_0_unix.sh
+$sudo apt install dvwa
+$dvwa-start
+$dvwa-stop
+
+lunch zap>+--scripts>authentication>new script>
+script name
+engine
+then place the code in script console
+
+sites tab> default context>
+1.inclde in content     \Qhttp://localhost/DVWA\E.*
+2.Exculde from context  add 3
+        i. \Qhttp://localhost/DVWA/login.php\E
+	ii. \Qhttp://localhost/DVWA/logout.php\E
+	iii. \Qhttp://localhost/DVWA/setup.php\E
+
+3.authentication
+     manual auth to Script-based Authentication.
+     then select DVWA auth > load
+     1.Login URL:   http://localhost/DVWA/login.php
+     2.CSRF Field: user_token
+     3.POST Data: username={%username%}&password={%password%}&Login=Log in&user_token={%user_token%}
+     4.Regex pattern identified in Logged in response messages:     \Q<a href="logout.php">Logout</a>\E
+     5.Regex pattern identified in Logged out response messages: (?:Location: [./]*login\.php)|(?:\Q<form action="login.php" method="post">\E)
+
+4.users admin,password
+5.forced user /
+6. ensure forced user enabled
+7.click spider
+8.open browser >dvwa  (DVWA will appear in sites)
+9.then new scan in spider import DVWA
+10. ensure context-default con,user -admin> start new scan

